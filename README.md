@@ -111,7 +111,7 @@ git add .
 git commit -m "Adds scraper function for Company X"
 ```
 
-### Step 4:** Push your feature branch ###
+### Step 4: Push your feature branch ###
 Push your new branch up to the remote repository on GitHub.
 
 ```bash
@@ -119,5 +119,5 @@ Push your new branch up to the remote repository on GitHub.
 git push -u origin feature/build-scraper
 ```
 
-### Step 5:** Open a Pull Request (PR) ###
+### Step 5: Open a Pull Request (PR) ###
 Go to the repository on GitHub. You will see a prompt to "Compare & pull request". Click it, write a short description of what you did, and tag your teammates to review it.
