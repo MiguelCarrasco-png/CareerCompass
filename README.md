@@ -18,14 +18,23 @@ The project scrapes and analyzes job postings from SHPE sponsor companies to pro
 
 ## 📁 Project Structure
 
-├── CareerCompass.gitignore # Ignores files like venv and pycache 
+```
+├── CareerCompass.gitignore # Ignores files like venv and pycache.
+
 ├── README.md # You are here! 
+
 ├── requirements.txt # All Python libraries needed 
+
 ├── app.py # The main Streamlit app file to run 
+
 ├── notebooks/ # Jupyter notebooks for testing/EDA 
+
 └── src/init.py  # Main source code  
+
 ├── src/scraper.py # Functions for scraping job data 
+
 └── src/nlp_processor.py # Functions for NLP (skill extraction, matching)
+```
 
 ## 🏁 How to start working on the project (Cloning)
 
@@ -75,14 +84,16 @@ Your web browser should automatically open to the application's local address (u
 
 We use a protected main branch. You cannot push code directly to main. All code must be submitted through a Pull Request (PR).
 
-**Step 1:** Get the latest code Always make sure your local main branch is up-to-date before starting a new feature.
+### Step 1: Get the latest code ###
+ Always make sure your local main branch is up-to-date before starting a new feature.
 
 ```bash
 git checkout main
 git pull origin main
 ```
 
-**Step 2:** Create a new feature branch Create a new branch for your task. Name it descriptively.
+### Step 2: Create a new feature branch ###
+ Create a new branch for your task. Name it descriptively.
 
 ```bash
 
@@ -90,7 +101,8 @@ git pull origin main
 git checkout -b feature/build-scraper
 ```
 
-**Step 3:** Write your code Make your changes, write your code, and commit your work in small, logical steps.
+### Step 3: Write your code ###
+ Make your changes, write your code, and commit your work in small, logical steps.
 
 ```bash
 # After making some changes...
@@ -98,11 +110,13 @@ git add .
 git commit -m "Adds scraper function for Company X"
 ```
 
-**Step 4:** Push your feature branch Push your new branch up to the remote repository on GitHub.
+### Step 4:** Push your feature branch ###
+Push your new branch up to the remote repository on GitHub.
 
 ```bash
 # The -u flag sets your branch to "track" the remote branch
 git push -u origin feature/build-scraper
 ```
 
-**Step 5:** Open a Pull Request (PR) Go to the repository on GitHub. You will see a prompt to "Compare & pull request". Click it, write a short description of what you did, and tag your teammates to review it.
+### Step 5:** Open a Pull Request (PR) ###
+Go to the repository on GitHub. You will see a prompt to "Compare & pull request". Click it, write a short description of what you did, and tag your teammates to review it.
