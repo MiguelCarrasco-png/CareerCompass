@@ -45,7 +45,8 @@ Follow these steps to get a copy of the project running on your local machine fo
 Since you are a collaborator, you can clone the repository directly using HTTPS (through the vscode terminal):
 
 ```bash
-# Clone the repo into your desired IDE. To use the terminal in vscode go to the terminal tab on the top and click new terminal.
+# Clone the repo into your desired IDE. 
+# To use the terminal in vscode go to the terminal tab on the top and click new terminal.
 git clone https://github.com/[YOUR-USERNAME]/CareerCompass.git
 ```
 
