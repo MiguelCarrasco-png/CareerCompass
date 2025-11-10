@@ -1,5 +1,5 @@
 #For my webdev people (Sarah for now), the following is where you are going to start setting up the webpage using streamlit. You can check 
-#the changes by running: streamlit run app.py
+#the changes by running: streamlit run app.py - press Ctrl C to stop
 #Your browser should open automatically, showing you the "Home" page with a title and a clickable button.
 
 
