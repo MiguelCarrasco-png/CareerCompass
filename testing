@@ -1,0 +1,86 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from utils.sentiment_analysis import analyze_sentiment
+
+st.set_page_config(page_title="SHPE Insights", layout="wide", page_icon="📊")
+
+# --- Sidebar navigation ---
+page = st.sidebar.radio("Navigate", ["Home", "Dashboard", "Event Feedback", "Career Insights"])
+
+# --- Data Storage (temporary demo) ---
+DATA_PATH = "data/feedback.csv"
+
+def load_feedback():
+    try:
+        return pd.read_csv(DATA_PATH)
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["event", "rating", "feedback", "sentiment"])
+
+# --- Home Page ---
+if page == "Home":
+    st.title("💙 SHPE Insights — UF Chapter")
+    st.image("assets/shpe_logo.png", width=200)
+    st.write("""
+    Welcome to **SHPE Insights**, a data-driven dashboard built for the University of Florida chapter of the Society of Hispanic Professional Engineers.
+    
+    This platform helps track:
+    - 🧩 Event feedback and engagement  
+    - 🧠 Sentiment and participation trends  
+    - 💼 Career growth and skills development  
+
+    Use the sidebar to explore different sections.
+    """)
+
+# --- Dashboard Page ---
+elif page == "Dashboard":
+    st.title("📊 Event Analytics Dashboard")
+
+    df = load_feedback()
+    if df.empty:
+        st.warning("No feedback data yet. Submit some on the Event Feedback page.")
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            avg_rating = round(df["rating"].astype(float).mean(), 2)
+            st.metric("Average Event Rating", avg_rating)
+        with col2:
+            sentiment_counts = df["sentiment"].value_counts()
+            fig_sent = px.pie(names=sentiment_counts.index, values=sentiment_counts.values,
+                              color=sentiment_counts.index,
+                              title="Sentiment Distribution")
+            st.plotly_chart(fig_sent, use_container_width=True)
+
+        fig = px.bar(df, x="event", y="rating", color="sentiment",
+                     title="Event Ratings by Sentiment", barmode="group")
+        st.plotly_chart(fig, use_container_width=True)
+
+# --- Event Feedback Page ---
+elif page == "Event Feedback":
+    st.title("📝 Submit Event Feedback")
+
+    with st.form("feedback_form"):
+        event = st.text_input("Event Name")
+        rating = st.slider("Rating (1–5)", 1, 5)
+        feedback = st.text_area("Feedback")
+        submitted = st.form_submit_button("Submit")
+
+    if submitted:
+        sentiment = analyze_sentiment(feedback)
+        new_data = pd.DataFrame([[event, rating, feedback, sentiment]],
+                                columns=["event", "rating", "feedback", "sentiment"])
+        df = load_feedback()
+        df = pd.concat([df, new_data], ignore_index=True)
+        df.to_csv(DATA_PATH, index=False)
+        st.success(f"Feedback submitted! Sentiment detected: **{sentiment}**")
+
+# --- Career Insights Page ---
+elif page == "Career Insights":
+    st.title("💼 Career Skill Trends (Demo)")
+    st.info("This page will later use ML/NLP to extract skill trends from member survey data.")
+    demo_data = pd.DataFrame({
+        "Skill": ["Python", "Leadership", "CAD", "Data Analysis", "Public Speaking"],
+        "Frequency": [45, 30, 25, 40, 20]
+    })
+    fig = px.bar(demo_data, x="Skill", y="Frequency", title="Top Career Skills Among SHPE Members")
+    st.plotly_chart(fig, use_container_width=True)
