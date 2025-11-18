@@ -21,6 +21,66 @@ def main():
         page_icon="🚀",
         layout="wide"
     )
+    
+    # Custom CSS for better styling
+    st.markdown("""
+        <style>
+        /* Main container styling */
+        .main > div {
+            padding-top: 2rem;
+        }
+        
+        /* Skill badge styling */
+        .skill-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            margin: 0.3rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .skill-have {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .skill-missing {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        
+        .skill-all {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+        
+        /* Metric styling */
+        [data-testid="stMetricValue"] {
+            font-size: 2rem;
+        }
+        
+        /* Button styling */
+        .stButton > button {
+            width: 100%;
+            border-radius: 10px;
+            height: 3rem;
+            font-weight: 600;
+        }
+        
+        /* Info box styling */
+        .info-box {
+            padding: 1.5rem;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #0066cc;
+            margin: 1rem 0;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
     # --- Sidebar Navigation ---
     st.sidebar.title("🧭 Navigation")
@@ -128,7 +188,7 @@ def main():
             skills = [s[0].title() for s in top_skills]
             counts = [s[1] for s in top_skills]
             
-            # Create horizontal bar chart
+            # Create horizontal bar chart with CLEAN HOVER
             fig = go.Figure(data=[
                 go.Bar(
                     y=skills[::-1],  # Reverse to show highest at top
@@ -137,26 +197,56 @@ def main():
                     marker=dict(
                         color=counts[::-1],
                         colorscale='Viridis',
-                        showscale=True,
-                        colorbar=dict(title="Count")
+                        showscale=False,
                     ),
                     text=counts[::-1],
                     textposition='auto',
+                    textfont=dict(size=12, color='white', family='Arial'),
+                    # CLEAN HOVER - No extra info
+                    hoverinfo='none',  # Disable default hover
+                    customdata=counts[::-1],
                 )
             ])
             
+            # Add custom hover using annotations
+            fig.update_traces(
+                hovertemplate='<b>%{y}</b><br>Mentioned in %{x} job postings<extra></extra>'
+            )
+            
             fig.update_layout(
-                title=f"Top {top_n} In-Demand Skills Across SHPE Sponsor Companies",
-                xaxis_title="Number of Job Postings Mentioning Skill",
-                yaxis_title="Technical Skill",
+                title={
+                    'text': f"Top {top_n} In-Demand Skills Across SHPE Sponsor Companies",
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 20, 'color': '#1f1f1f', 'family': 'Arial'}
+                },
+                xaxis_title="Number of Job Postings",
+                yaxis_title="",
                 height=600,
                 showlegend=False,
-                hovermode='y'
+                plot_bgcolor='rgba(250,250,250,0.5)',
+                paper_bgcolor='white',
+                font=dict(size=12, family='Arial'),
+                margin=dict(l=150, r=50, t=80, b=50),
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='rgba(200,200,200,0.3)',
+                    zeroline=False,
+                ),
+                yaxis=dict(
+                    showgrid=False,
+                ),
+                hoverlabel=dict(
+                    bgcolor="white",
+                    font_size=14,
+                    font_family="Arial"
+                )
             )
             
             st.plotly_chart(fig, use_container_width=True)
             
             # Show breakdown by company
+            st.markdown("---")
             st.markdown("### 📋 Skills by Company")
             
             # Create company breakdown
@@ -168,14 +258,14 @@ def main():
                     company_skills[company] = Counter()
                 company_skills[company].update(job_skills)
             
-            # Display in columns
+            # Display in columns with better formatting
             cols = st.columns(len(company_skills))
             for idx, (company, skills_counter) in enumerate(company_skills.items()):
                 with cols[idx]:
-                    st.markdown(f"**{company}**")
+                    st.markdown(f"#### {company}")
                     top_3 = skills_counter.most_common(3)
-                    for skill, count in top_3:
-                        st.write(f"• {skill.title()}: {count}")
+                    for rank, (skill, count) in enumerate(top_3, 1):
+                        st.markdown(f"`{rank}.` **{skill.title()}** - {count} jobs")
     
     # RESUME MATCHER PAGE
     elif page_selection == "📄 Resume Matcher":
@@ -203,6 +293,20 @@ def main():
                     resume_text = uploaded_file.read().decode('utf-8')
                 
                 st.session_state['resume_text'] = resume_text
+                
+                # Extract and display ALL skills from resume
+                resume_skills = extract_skills(resume_text)
+                st.session_state['all_resume_skills'] = list(resume_skills.keys())
+                
+                # Show skills found in resume
+                if resume_skills:
+                    st.markdown("#### 🔍 Skills Detected in Your Resume:")
+                    skills_html = ""
+                    for skill in sorted(resume_skills.keys()):
+                        skills_html += f'<span class="skill-badge skill-all">{skill.title()}</span>'
+                    st.markdown(skills_html, unsafe_allow_html=True)
+                else:
+                    st.warning("⚠️ No technical skills detected. Make sure your resume lists your technical skills clearly.")
                 
                 # Show preview
                 with st.expander("📄 Resume Preview (first 500 characters)"):
@@ -259,14 +363,19 @@ def main():
             if score >= 70:
                 score_color = "🟢"
                 message = "Excellent match! You have most of the required skills."
+                progress_color = "green"
             elif score >= 50:
                 score_color = "🟡"
                 message = "Good match! Consider learning a few more skills to strengthen your application."
+                progress_color = "orange"
             else:
                 score_color = "🔴"
                 message = "There's room for improvement. Focus on building the missing skills below."
+                progress_color = "red"
             
+            # Big score display
             st.markdown(f"### {score_color} Match Score: {score}%")
+            st.progress(score / 100)
             st.info(message)
             
             # Create three columns for detailed breakdown
@@ -274,54 +383,79 @@ def main():
             
             with col1:
                 st.metric(
-                    "Skills You Have",
+                    "Matching Skills",
                     len(comparison['skills_you_have']),
-                    f"out of {comparison['total_job_skills']}"
+                    f"out of {comparison['total_job_skills']} required"
                 )
             
             with col2:
                 st.metric(
-                    "Skills to Learn",
+                    "Skills Gap",
                     len(comparison['skills_you_are_missing'])
                 )
             
             with col3:
                 st.metric(
-                    "Your Total Skills",
+                    "Total Resume Skills",
                     comparison['total_resume_skills']
                 )
             
-            # Show detailed lists
-            col1, col2 = st.columns(2)
+            st.markdown("---")
+            
+            # THREE COLUMN SKILL DISPLAY
+            col1, col2, col3 = st.columns(3)
             
             with col1:
                 st.markdown("### ✅ Skills You Have")
+                st.caption("Skills that match this job")
                 if comparison['skills_you_have']:
-                    for skill in comparison['skills_you_have']:
-                        st.markdown(f"- **{skill.title()}**")
+                    skills_html = ""
+                    for skill in sorted(comparison['skills_you_have']):
+                        skills_html += f'<span class="skill-badge skill-have">{skill.title()}</span>'
+                    st.markdown(skills_html, unsafe_allow_html=True)
                 else:
-                    st.write("No matching skills found. Consider adding relevant skills to your resume!")
+                    st.warning("No matching skills found.")
             
             with col2:
                 st.markdown("### 📚 Skills to Learn")
+                st.caption("Required by job but not in your resume")
                 if comparison['skills_you_are_missing']:
-                    for skill in comparison['skills_you_are_missing']:
-                        st.markdown(f"- {skill.title()}")
+                    skills_html = ""
+                    for skill in sorted(comparison['skills_you_are_missing']):
+                        skills_html += f'<span class="skill-badge skill-missing">{skill.title()}</span>'
+                    st.markdown(skills_html, unsafe_allow_html=True)
                 else:
-                    st.write("You have all required skills! 🎉")
+                    st.success("You have all required skills! 🎉")
+            
+            with col3:
+                st.markdown("### 💼 All Your Skills")
+                st.caption("All technical skills found in your resume")
+                if 'all_resume_skills' in st.session_state and st.session_state['all_resume_skills']:
+                    skills_html = ""
+                    for skill in sorted(st.session_state['all_resume_skills']):
+                        skills_html += f'<span class="skill-badge skill-all">{skill.title()}</span>'
+                    st.markdown(skills_html, unsafe_allow_html=True)
+                else:
+                    st.info("Upload a resume to see your skills")
             
             # Recommendations
             if comparison['skills_you_are_missing']:
                 st.markdown("---")
                 st.markdown("### 💡 Recommendations")
-                st.markdown(f"""
-                To improve your match for this role, consider:
                 
-                1. **Priority Skills**: Focus on learning {', '.join(comparison['skills_you_are_missing'][:3])}
-                2. **Online Resources**: Check out Coursera, Udemy, or LinkedIn Learning for courses
-                3. **Build Projects**: Create portfolio projects that use these technologies
-                4. **Update Resume**: Make sure your resume clearly lists your technical skills
-                """)
+                # Get top 3 priority skills
+                priority_skills = ', '.join([s.title() for s in comparison['skills_you_are_missing'][:3]])
+                
+                st.markdown(f"""
+                <div class="info-box">
+                <strong>To improve your match for this role:</strong><br><br>
+                
+                🎯 <strong>Priority Skills:</strong> Focus on learning {priority_skills}<br>
+                📚 <strong>Online Resources:</strong> Check out Coursera, Udemy, or LinkedIn Learning<br>
+                💻 <strong>Build Projects:</strong> Create portfolio projects using these technologies<br>
+                📝 <strong>Update Resume:</strong> Make sure your resume clearly lists your technical skills
+                </div>
+                """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
