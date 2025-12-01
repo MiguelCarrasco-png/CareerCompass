@@ -199,8 +199,8 @@ def main():
             else:
                     resume_text = uploaded_file.read().decode('utf-8')
                 
-            st.session_state['resume_text'] = resume_text
-                
+                st.session_state['resume_text'] = resume_text 
+           
         # Match button
             st.markdown("---")
         
