@@ -65,6 +65,11 @@ def main():
             2. **Our NLP engine extracts skills** from job descriptions using machine learning
             3. **You get actionable insights** about what to learn and how you compare
             
+            ### Companies
+            - **Google**
+            - **Lockheed Martin**
+            - **Texas Instruments**
+            - **Northrop Grumman**
             ---
             
             ### Get Started
@@ -199,7 +204,7 @@ def main():
             else:
                     resume_text = uploaded_file.read().decode('utf-8')
                 
-                st.session_state['resume_text'] = resume_text 
+                    st.session_state['resume_text'] = resume_text 
            
         # Match button
             st.markdown("---")
