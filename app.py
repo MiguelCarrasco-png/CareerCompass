@@ -65,6 +65,11 @@ def main():
             2. **Our NLP engine extracts skills** from job descriptions using machine learning
             3. **You get actionable insights** about what to learn and how you compare
             
+            ### Companies
+            - **Google**
+            - **Lockheed Martin**
+            - **Texas Instruments**
+            - **Northrop Grumman**
             ---
             
             ### Get Started
@@ -182,143 +187,182 @@ def main():
         st.title("📄 Resume Matcher")
         st.markdown("Upload your resume and see how you match against real job postings!")
         
-        # Two column layout
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            st.markdown("### Step 1: Upload Your Resume")
-            uploaded_file = st.file_uploader(
-                "Choose your resume (PDF or TXT)",
-                type=['pdf', 'txt'],
-                help="We'll extract skills from your resume to match against job postings"
-            )
+        # input for resume upload
+        st.markdown("### Step 1: Upload Your Resume")
+        uploaded_file = st.file_uploader(
+            "Choose your resume (PDF or TXT)",
+            type=['pdf', 'txt'],
+            help="We'll extract skills from your resume to match against job postings"
+        )
             
-            if uploaded_file:
-                st.success(f"✅ Uploaded: {uploaded_file.name}")
+        if uploaded_file:
+            st.success(f"✅ Uploaded: {uploaded_file.name}")
                 
-                # Extract text from resume
-                if uploaded_file.type == "application/pdf":
+               # Extract text from resume
+            if uploaded_file.type == "application/pdf":
                     resume_text = read_pdf_text(uploaded_file)
-                else:
+            else:
                     resume_text = uploaded_file.read().decode('utf-8')
                 
-                st.session_state['resume_text'] = resume_text 
+                    st.session_state['resume_text'] = resume_text 
            
-
-        with col2:
-            st.markdown("### Step 2: Select a Job")
-            
-            # Get jobs
-            jobs = scrape_all_job_data(use_test_data=True)
-            
-            # Create job selection dropdown
-            job_options = [f"{job['company']} - {job['title']}" for job in jobs]
-            selected_job_idx = st.selectbox(
-                "Choose a job to match against",
-                range(len(job_options)),
-                format_func=lambda x: job_options[x]
-            )
-            
-            selected_job = jobs[selected_job_idx]
-            
-            # Show job description
-            with st.expander("📋 View Job Description"):
-                st.markdown(f"**Company:** {selected_job['company']}")
-                st.markdown(f"**Title:** {selected_job['title']}")
-                st.markdown(f"**Description:**")
-                st.write(selected_job['description'])
-        
         # Match button
-        st.markdown("---")
+            st.markdown("---")
         
-        if st.button("🎯 Calculate Match Score", type="primary", use_container_width=True):
-            if 'resume_text' not in st.session_state:
-                st.error("⚠️ Please upload your resume first!")
-            else:
-                with st.spinner("🔄 Analyzing your resume..."):
-                    resume_text = st.session_state['resume_text']
-                    job_text = selected_job['description']
+            if st.button("🎯 Analyze Resume Against All Jobs", type="primary", use_container_width=True):
+                with st.spinner("🔄 Analyzing your resume against all job postings..."):
+                    # Get all jobs
+                    jobs = scrape_all_job_data(use_test_data=True)
                     
-                    # Get comparison
-                    comparison = compare_skills(resume_text, job_text)
+                    # Calculate match for each job
+                    job_matches = []
+                    for job in jobs:
+                        comparison = compare_skills(resume_text, job['description'])
+                        job_matches.append({
+                            'company': job['company'],
+                            'title': job['title'],
+                            'description': job['description'],
+                            'score': comparison['score'],
+                            'skills_you_have': comparison['skills_you_have'],
+                            'skills_you_are_missing': comparison['skills_you_are_missing'],
+                            'total_job_skills': comparison['total_job_skills'],
+                            'total_resume_skills': comparison['total_resume_skills']
+                        })
                     
-                    st.session_state['comparison'] = comparison
+                    # Sort by score (highest first)
+                    job_matches.sort(key=lambda x: x['score'], reverse=True)
+                    
+                    st.session_state['job_matches'] = job_matches
+                
+                st.success(f"✅ Analyzed {len(job_matches)} jobs!")
         
-        # Display results
-        if 'comparison' in st.session_state:
-            comparison = st.session_state['comparison']
+        # Display ranked results
+        if 'job_matches' in st.session_state:
+            job_matches = st.session_state['job_matches']
             
             st.markdown("---")
-            st.markdown("## 📊 Match Results")
+            st.markdown("## 📊 Your Best Job Matches (Ranked)")
             
-            # Show match score with color coding
-            score = comparison['score']
-            if score >= 70:
-                score_color = "🟢"
-                message = "Excellent match! You have most of the required skills."
-            elif score >= 50:
-                score_color = "🟡"
-                message = "Good match! Consider learning a few more skills to strengthen your application."
-            else:
-                score_color = "🔴"
-                message = "There's room for improvement. Focus on building the missing skills below."
-            
-            st.markdown(f"### {score_color} Match Score: {score}%")
-            st.info(message)
-            
-            # Create three columns for detailed breakdown
+            # Overall statistics
             col1, col2, col3 = st.columns(3)
-            
             with col1:
-                st.metric(
-                    "Skills You Have",
-                    len(comparison['skills_you_have']),
-                    f"out of {comparison['total_job_skills']}"
-                )
-            
+                st.metric("Jobs Analyzed", len(job_matches))
             with col2:
-                st.metric(
-                    "Skills to Learn",
-                    len(comparison['skills_you_are_missing'])
-                )
-            
+                avg_score = sum(j['score'] for j in job_matches) / len(job_matches)
+                st.metric("Average Match Score", f"{avg_score:.1f}%")
             with col3:
-                st.metric(
-                    "Your Total Skills",
-                    comparison['total_resume_skills']
-                )
+                best_match = job_matches[0]
+                st.metric("Best Match Score", f"{best_match['score']}%")
             
-            # Show detailed lists
-            col1, col2 = st.columns(2)
+            st.markdown("---")
             
-            with col1:
-                st.markdown("### ✅ Skills You Have")
-                if comparison['skills_you_have']:
-                    for skill in comparison['skills_you_have']:
-                        st.markdown(f"- **{skill.title()}**")
+            # Display each job match as an expandable card
+            for idx, match in enumerate(job_matches, 1):
+                # Determine color based on score
+                if match['score'] >= 70:
+                    score_emoji = "🟢"
+                elif match['score'] >= 50:
+                    score_emoji = "🟡"
                 else:
-                    st.write("No matching skills found. Consider adding relevant skills to your resume!")
-            
-            with col2:
-                st.markdown("### 📚 Skills to Learn")
-                if comparison['skills_you_are_missing']:
-                    for skill in comparison['skills_you_are_missing']:
-                        st.markdown(f"- {skill.title()}")
-                else:
-                    st.write("You have all required skills! 🎉")
-            
-            # Recommendations
-            if comparison['skills_you_are_missing']:
-                st.markdown("---")
-                st.markdown("### 💡 Recommendations")
-                st.markdown(f"""
-                To improve your match for this role, consider:
+                    score_emoji = "🔴"
                 
-                1. **Priority Skills**: Focus on learning {', '.join(comparison['skills_you_are_missing'][:3])}
-                2. **Online Resources**: Check out Coursera, Udemy, or LinkedIn Learning for courses
-                3. **Build Projects**: Create portfolio projects that use these technologies
-                4. **Update Resume**: Make sure your resume clearly lists your technical skills
-                """)
+                # Create expander for each job
+                with st.expander(
+                    f"**#{idx}** {score_emoji} **{match['company']} - {match['title']}** (Match: {match['score']}%)",
+                    expanded=(idx == 1)  # Auto-expand the top match
+                ):
+                    # Job details header
+                    st.markdown(f"### {match['company']}")
+                    st.markdown(f"**Position:** {match['title']}")
+                    st.markdown(f"**Match Score:** {match['score']}%")
+                    
+                    # Match interpretation
+                    if match['score'] >= 70:
+                        st.success("🎉 Excellent match! You have most of the required skills.")
+                    elif match['score'] >= 50:
+                        st.info("👍 Good match! Consider learning a few more skills to strengthen your application.")
+                    else:
+                        st.warning("💪 Room for improvement. Focus on building the missing skills below.")
+                    
+                    # Skills breakdown
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric(
+                            "Skills You Have",
+                            len(match['skills_you_have']),
+                            f"of {match['total_job_skills']}"
+                        )
+                    
+                    with col2:
+                        st.metric(
+                            "Skills to Learn",
+                            len(match['skills_you_are_missing'])
+                        )
+                    
+                    with col3:
+                        st.metric(
+                            "Your Total Skills",
+                            match['total_resume_skills']
+                        )
+                    
+                    # Detailed skills lists
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown("#### ✅ Skills You Have")
+                        if match['skills_you_have']:
+                            for skill in sorted(match['skills_you_have']):
+                                st.markdown(f"- **{skill.title()}**")
+                        else:
+                            st.write("No matching skills found.")
+                    
+                    with col2:
+                        st.markdown("#### 📚 Skills to Learn")
+                        if match['skills_you_are_missing']:
+                            for skill in sorted(match['skills_you_are_missing']):
+                                st.markdown(f"- {skill.title()}")
+                        else:
+                            st.write("You have all required skills! 🎉")
+                    
+                    # Job description
+                    st.markdown("---")
+                    st.markdown("#### 📋 Full Job Description")
+                    st.text_area(
+                        "Description",
+                        match['description'],
+                        height=100,
+                        key=f"job_desc_{idx}",
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Recommendations
+                    if match['skills_you_are_missing']:
+                        st.markdown("---")
+                        st.markdown("#### 💡 Next Steps")
+                        top_skills = match['skills_you_are_missing'][:3]
+                        st.markdown(f"""
+                        To improve your match for this role:
+                        
+                        1. **Priority Skills**: Focus on {', '.join(top_skills)}
+                        2. **Learn**: Use Coursera, Udemy, or LinkedIn Learning
+                        3. **Build**: Create projects showcasing these technologies
+                        4. **Update**: Add new skills to your resume
+                        """)
+        elif not uploaded_file:
+            # Show helpful message when no resume uploaded
+            st.info("👆 Upload your resume above to get started!")
+            
+            st.markdown("### How It Works")
+            st.markdown("""
+            1. **Upload** your resume (PDF or TXT format)
+            2. **Click** the analyze button
+            3. **View** all jobs ranked by how well you match
+            4. **Learn** which skills to develop for each opportunity
+            
+            Your resume will be compared against all SHPE sponsor company job postings,
+            and you'll see exactly where you're the strongest candidate!
+            """)
 
 if __name__ == "__main__":
     main()
