@@ -95,45 +95,44 @@ def main():
                     top_skill = max(skills.items(), key=lambda x: x[1])
                     st.metric("Most In-Demand Skill", top_skill[0].title(), f"{top_skill[1]} jobs")
     
-    # DASHBOARD PAGE
     elif page_selection == "📊 In-Demand Skills Dashboard":
         st.title("📊 In-Demand Skills Dashboard")
         st.markdown("See what skills SHPE sponsor companies are looking for right now!")
-        
+       
         # Add controls
         col1, col2 = st.columns([1, 3])
-        
+       
         with col1:
             st.markdown("### Controls")
             top_n = st.slider("Number of skills to show", 5, 20, 15)
-            
+           
             if st.button("🔍 Analyze Jobs", type="primary", use_container_width=True):
                 st.session_state['run_analysis'] = True
-        
+       
         # Run analysis
         if st.session_state.get('run_analysis', False):
             with st.spinner('🔄 Scraping job postings and analyzing skills...'):
                 # Get data from your backend
                 jobs = scrape_all_job_data(use_test_data=True)
                 skill_counts = get_skill_counts(jobs)
-                
+               
                 # Store in session state
                 st.session_state['jobs'] = jobs
                 st.session_state['skill_counts'] = skill_counts
-            
+           
             st.success(f"✅ Analyzed {len(jobs)} jobs from {len(set(j['company'] for j in jobs))} companies!")
-        
+       
         # Display results if available
         if 'skill_counts' in st.session_state:
             skill_counts = st.session_state['skill_counts']
             jobs = st.session_state['jobs']
-            
+           
             # Get top N skills
             top_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)[:top_n]
             skills = [s[0].title() for s in top_skills]
             counts = [s[1] for s in top_skills]
-            
-            # Create horizontal bar chart
+           
+            # Create horizontal bar chart with CLEAN HOVER
             fig = go.Figure(data=[
                 go.Bar(
                     y=skills[::-1],  # Reverse to show highest at top
@@ -142,28 +141,58 @@ def main():
                     marker=dict(
                         color=counts[::-1],
                         colorscale='Viridis',
-                        showscale=True,
-                        colorbar=dict(title="Count")
+                        showscale=False,
                     ),
                     text=counts[::-1],
                     textposition='auto',
+                    textfont=dict(size=12, color='white', family='Arial'),
+                    # CLEAN HOVER - No extra info
+                    hoverinfo='none',  # Disable default hover
+                    customdata=counts[::-1],
                 )
             ])
-            
+           
+            # Add custom hover using annotations
+            fig.update_traces(
+                hovertemplate='<b>%{y}</b><br>Mentioned in %{x} job postings<extra></extra>'
+            )
+           
             fig.update_layout(
-                title=f"Top {top_n} In-Demand Skills Across SHPE Sponsor Companies",
-                xaxis_title="Number of Job Postings Mentioning Skill",
-                yaxis_title="Technical Skill",
+                title={
+                    'text': f"Top {top_n} In-Demand Skills Across SHPE Sponsor Companies",
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 20, 'color': '#1f1f1f', 'family': 'Arial'}
+                },
+                xaxis_title="Number of Job Postings",
+                yaxis_title="",
                 height=600,
                 showlegend=False,
-                hovermode='y'
+                plot_bgcolor='rgba(250,250,250,0.5)',
+                paper_bgcolor='white',
+                font=dict(size=12, family='Arial'),
+                margin=dict(l=150, r=50, t=80, b=50),
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='rgba(200,200,200,0.3)',
+                    zeroline=False,
+                ),
+                yaxis=dict(
+                    showgrid=False,
+                ),
+                hoverlabel=dict(
+                    bgcolor="white",
+                    font_size=14,
+                    font_family="Arial"
+                )
             )
-            
+           
             st.plotly_chart(fig, use_container_width=True)
-            
+           
             # Show breakdown by company
+            st.markdown("---")
             st.markdown("### 📋 Skills by Company")
-            
+           
             # Create company breakdown
             company_skills = {}
             for job in jobs:
@@ -172,15 +201,16 @@ def main():
                 if company not in company_skills:
                     company_skills[company] = Counter()
                 company_skills[company].update(job_skills)
-            
-            # Display in columns
+           
+            # Display in columns with better formatting
             cols = st.columns(len(company_skills))
             for idx, (company, skills_counter) in enumerate(company_skills.items()):
                 with cols[idx]:
-                    st.markdown(f"**{company}**")
+                    st.markdown(f"#### {company}")
                     top_3 = skills_counter.most_common(3)
-                    for skill, count in top_3:
-                        st.write(f"• {skill.title()}: {count}")
+                    for rank, (skill, count) in enumerate(top_3, 1):
+                        st.markdown(f"`{rank}.` **{skill.title()}** - {count} jobs")
+
     
     # RESUME MATCHER PAGE
     elif page_selection == "📄 Resume Matcher":
